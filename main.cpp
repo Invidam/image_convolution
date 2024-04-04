@@ -7,9 +7,14 @@
 
 namespace fs = std::filesystem;
 
+std::string getExtension(const std::string &filePath) {
+    return filePath.substr(filePath.find_last_of(".") + 1);
+}
+
 std::string selectImageFromFolder() {
     std::string imagesPath = "images/";
     std::vector<std::string> imageFiles;
+    std::string extension;
 
     // List all files in the directory and filter for images
     std::cout << "Listing all images in directory: " << imagesPath << std::endl;
@@ -63,7 +68,9 @@ int measureBySteps(std::string selectedImage) {
     std::cout << "===========\n[2] Convolution Image.\nElapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
 
     stepTimer.reset();
-    if (!cv::imwrite("output.jpg", result)) {
+    std::string outputFilename = "output/" + fs::path(selectedImage).filename().string();
+    std::cout << "Writing output to: " << outputFilename << std::endl;
+    if (!cv::imwrite(outputFilename, result)) {
         std::cerr << "Failed to save the image." << std::endl;
         return -1;
     }
