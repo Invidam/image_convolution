@@ -9,7 +9,7 @@
 
 class Calculator {
 public:
-    static void calculate(cv::Mat& img);
+    static cv::Mat calculate(const cv::Mat &img);
 };
 
 

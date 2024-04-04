@@ -59,17 +59,15 @@ int measureBySteps(std::string selectedImage) {
     std::cout << "===========\n[1] Load Image.\nElapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
 
     stepTimer.reset();
-    Calculator::calculate(image);
+    cv::Mat result = Calculator::calculate(image);
     std::cout << "===========\n[2] Convolution Image.\nElapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
 
     stepTimer.reset();
-    if (!cv::imwrite("output.jpg", image)) {
+    if (!cv::imwrite("output.jpg", result)) {
         std::cerr << "Failed to save the image." << std::endl;
         return -1;
     }
     std::cout << "===========\n[3] Write Image.\nElapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
-
-//    std::cout << "Image processed and saved as output.jpg" << std::endl;
 
     std::cout << "===========\n[F] Full process.\nElapsed time: " << fullTimer.elapsed() << " ms" << std::endl;
     return 0;
