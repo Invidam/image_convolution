@@ -1,55 +1,85 @@
 #include <opencv2/opencv.hpp>
 #include <iostream>
-#include <unistd.h>
-#include <fstream>
+#include <filesystem>
+#include <vector>
+#include "Calculator.h"
+#include "Timer.h"
 
-class Calculator {
-public:
-    static void calculate(cv::Mat& img) {
-        // Assuming img is an 8-bit unsigned image
-        img.forEach<cv::Vec3b>([](cv::Vec3b &pixel, const int* position) -> void {
-            for (int i = 0; i < 3; ++i) {
-                pixel[i] =  255 - pixel[i];
+namespace fs = std::filesystem;
+
+std::string selectImageFromFolder() {
+    std::string imagesPath = "images/";
+    std::vector<std::string> imageFiles;
+
+    // List all files in the directory and filter for images
+    std::cout << "Listing all images in directory: " << imagesPath << std::endl;
+    for (const auto &entry: fs::directory_iterator(imagesPath)) {
+        if (entry.is_regular_file()) {
+            std::string filePath = entry.path().string();
+            // Simple check for image file extensions
+            if (filePath.size() >= 4 && (filePath.substr(filePath.size() - 4) == ".jpg" ||
+                                         filePath.substr(filePath.size() - 4) == ".png" ||
+                                         filePath.substr(filePath.size() - 5) == ".jpeg")) {
+                imageFiles.push_back(filePath);
+                std::cout << imageFiles.size() << ": " << filePath << std::endl;
             }
-        });
+        }
     }
-};
+
+    if (imageFiles.empty()) {
+        std::cerr << "No image files found in the directory." << std::endl;
+        return "";
+    }
+
+    // Allow user to select an image
+    std::cout << "Enter the number of the image you wish to process: ";
+    size_t selection;
+    std::cin >> selection;
+    if (selection < 1 || selection > imageFiles.size()) {
+        std::cerr << "Invalid selection." << std::endl;
+        return "";
+    }
+
+    return imageFiles[selection - 1];
+}
+
+int measureBySteps(std::string selectedImage) {
+
+    Timer fullTimer;
+    Timer stepTimer;
+    fullTimer.reset();
+    stepTimer.reset();
+
+    // Load and process the imagec
+    cv::Mat image = cv::imread(selectedImage, cv::IMREAD_COLOR);
+    if (image.empty()) {
+        std::cerr << "Error loading image: " << selectedImage << std::endl;
+        return -1;
+    }
+    std::cout << "===========\n[1] Load Image.\nElapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
+
+    stepTimer.reset();
+    Calculator::calculate(image);
+    std::cout << "===========\n[2] Convolution Image.\nElapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
+
+    stepTimer.reset();
+    if (!cv::imwrite("output.jpg", image)) {
+        std::cerr << "Failed to save the image." << std::endl;
+        return -1;
+    }
+    std::cout << "===========\n[3] Write Image.\nElapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
+
+//    std::cout << "Image processed and saved as output.jpg" << std::endl;
+
+    std::cout << "===========\n[F] Full process.\nElapsed time: " << fullTimer.elapsed() << " ms" << std::endl;
+    return 0;
+}
 
 int main() {
-    char cwd[1024];
-    if (getcwd(cwd, sizeof(cwd)) != nullptr) {
-        std::cout << "Current working directory: " << cwd << std::endl;
-    } else {
-        perror("getcwd() error");
-        return 1;
-    }
-
-    std::cout << "OpenCV version: " << CV_VERSION << std::endl;
-    std::cout << "Start image convolution" << std::endl;
-    std::string inputPath = "images/input.jpg"; // Adjust path as necessary
-// Check if the file can be opened with standard C++ I/O
-    std::ifstream file(inputPath);
-    if (!file) {
-        std::cerr << "Failed to open file with ifstream: " << inputPath << std::endl;
-    } else {
-        std::cout << "File exists and can be opened: " << inputPath << std::endl;
-    }
-
-// Attempt to open with OpenCV
-    cv::Mat image = cv::imread(inputPath, cv::IMREAD_COLOR);
-    if (image.empty()) {
-        std::cerr << "Error loading image with OpenCV: " << inputPath << std::endl;
-    } else {
-        std::cout << "Image loaded successfully." << std::endl;
-    }
-
-    Calculator::calculate(image);
-
-    if (!cv::imwrite("output.jpg", image)) {
-        std::cerr << "Failed to save the image" << std::endl;
+    std::string selectedImage = selectImageFromFolder();
+    if (selectedImage.empty()) {
         return -1;
     }
 
-    std::cout << "Image processed and saved as output.png" << std::endl;
-    return 0;
+    return measureBySteps(selectedImage);
 }
