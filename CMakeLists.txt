@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
 project(image_convolution)
-set(CMAKE_CXX_STANDARD 17)
 
 # Set runtime output directory to project root
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
@@ -22,9 +21,6 @@ if(NOT OpenMP_CXX_FOUND)
     message(FATAL_ERROR "OpenMP not found")
 endif()
 
-# Include OpenCV headers
-include_directories(${OpenCV_INCLUDE_DIRS})
-
 # Find OpenCV
 find_package(OpenCV REQUIRED)
 if(NOT OpenCV_FOUND)
@@ -33,6 +29,12 @@ endif()
 
 # Create executable
 add_executable(image_convolution ${SOURCE_FILES})
+
+# Define compile feature (C++ standard version)
+target_compile_features(image_convolution PRIVATE cxx_std_17)
+
+# Include OpenCV directory
+target_include_directories(image_convolution PRIVATE ${OpenCV_INCLUDE_DIRS})
 
 # Link OpenCV and OpenMP libraries
 target_link_libraries(image_convolution PRIVATE ${OpenCV_LIBS} ${OpenMP_CXX_LIBRARIES})

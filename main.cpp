@@ -83,6 +83,7 @@ int measureBySteps(std::string selectedImage) {
 }
 
 int main() {
+    std::cout << "# of max threads: " << omp_get_max_threads() << std::endl;
     cvl::setLogLevel(cvl::LogLevel::LOG_LEVEL_WARNING);
     std::string selectedImage = selectImageFromFolder();
     int result;
