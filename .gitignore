@@ -1,3 +1,5 @@
 cmake-build-debug
 .idea
 output
+image_convolution
+image_convolution.exe

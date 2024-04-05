@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.26)
+cmake_minimum_required(VERSION 3.25)
 project(image_convolution)
 set(CMAKE_CXX_STANDARD 17)
 
@@ -10,7 +10,11 @@ set(SOURCE_FILES
         main.cpp
         Calculator.cpp
         Timer.cpp
-)
+        )
+
+set(OpenCV_DIR $ENV{OPENCV_4.5.5_HOME})
+set(OpenCV_INCLUDE ${OpenCV_DIR}/include)
+set(OpenCV_BIN ${OpenCV_DIR}/x64/mingw/bin)
 
 # Find OpenMP
 find_package(OpenMP REQUIRED)
@@ -18,14 +22,14 @@ if(NOT OpenMP_CXX_FOUND)
     message(FATAL_ERROR "OpenMP not found")
 endif()
 
+# Include OpenCV headers
+include_directories(${OpenCV_INCLUDE_DIRS})
+
 # Find OpenCV
 find_package(OpenCV REQUIRED)
 if(NOT OpenCV_FOUND)
     message(FATAL_ERROR "OpenCV not found")
 endif()
-
-# Include OpenCV headers
-include_directories(${OpenCV_INCLUDE_DIRS})
 
 # Create executable
 add_executable(image_convolution ${SOURCE_FILES})
