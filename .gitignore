@@ -1,5 +1,12 @@
+# CMake
 cmake-build-debug
+
+# JetBrains IDE
 .idea
+
+# Build
 output
 image_convolution
 image_convolution.exe
+image_convolution.ilk
+image_convolution.pdb
