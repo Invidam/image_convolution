@@ -3,8 +3,10 @@
 #include <iostream>
 #include <filesystem>
 #include <vector>
+#include <functional>
 #include "Transformer.h"
 #include "Timer.h"
+#include "Filter.h"
 
 namespace fs = std::filesystem;
 namespace cvl = cv::utils::logging;
@@ -50,44 +52,83 @@ std::string selectImageFromFolder() {
     return imageFiles[selection - 1];
 }
 
+std::function<cv::Mat()> getFilterFunction(Filter &filter) {
+    std::function<cv::Mat()> callback;
+    int size, type;
+
+    while (true) {
+        std::cout << "Enter the filter size: ";
+        std::cin >> size;
+
+        if (size > 0) break;
+
+        std::cout << "Out of range! ";
+    }
+
+    filter.size(size);
+
+    while (true) {
+        std::cout << "1. Gaussian blur\n";
+        std::cout << "...select a filter: ";
+        std::cin >> type;
+
+        if (type == 1) {
+            float sigma;
+            std::cout << "Enter sigma: ";
+            std::cin >> sigma;
+            callback = [&, sigma]() {
+                return filter.gaussian(sigma);
+            };
+            break;
+        } else {
+            std::cout << "Unknown type!\n";
+        }
+    }
+
+    return callback;
+}
+
 int measureBySteps(const std::string &selectedImage) {
     Timer fullTimer;
     Timer stepTimer;
     fullTimer.reset();
     stepTimer.reset();
 
-    // Load and process the imagec
+    std::cout << "===========\n[1] Importing image...\n";
     cv::Mat image = cv::imread(selectedImage, cv::IMREAD_COLOR);
     if (image.empty()) {
         std::cerr << "Error loading image: " << selectedImage << std::endl;
         return -1;
     }
-    std::cout << "===========\n[1] Importing image...\nElapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
+    std::cout << "Elapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
 
+    std::cout << "===========\n";
+    Transformer transformer;
+    Filter filter;
+    auto getFilter = getFilterFunction(filter);
+
+    std::cout << "===========\n[2-1] Convolve image... (serial mode)\n";
     stepTimer.reset();
+    transformer.convolve(image, getFilter());
+    std::cout << "Elapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
 
-//    uchar data[] = {0, 1, 0, 1, 4, 1, 0, 1, 0};
-    uchar data[] = {
-            0, 1, 2, 1, 0,
-            1, 4, 8, 4, 1,
-            2, 8, 16, 8, 2,
-            1, 4, 8, 4, 1,
-            0, 1, 2, 1, 0
-    };
-    cv::Mat filter(5, 5, CV_8U, data);
-//    cv::Mat filter(3, 3, CV_8U, cv::Scalar(1));
-    cv::Mat result = Transformer::convolve(image, filter);
-    std::cout << "===========\n[2] Applying convolution...\nElapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
+    std::cout << "===========\n[2-2] Convolve image... (parallel mode)\n";
+    stepTimer.reset();
+    filter.parallel(true);
+    transformer.parallel(true);
+    cv::Mat result = transformer.convolve(image, getFilter());
+    std::cout << "Elapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
 
+    std::cout << "===========\n[3] Writing image...\n";
     stepTimer.reset();
     fs::create_directory("output");
     std::string outputFilename = "output/" + fs::path(selectedImage).filename().string();
-    std::cout << "Writing output to: " << outputFilename << std::endl;
     if (!cv::imwrite(outputFilename, result)) {
         std::cerr << "Failed to save the image." << std::endl;
         return -1;
     }
-    std::cout << "===========\n[3] Writing image...\nElapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
+    std::cout << "Target: " << outputFilename << std::endl;
+    std::cout << "Elapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
 
     std::cout << "===========\nTotal process time: " << fullTimer.elapsed() << " ms" << std::endl;
     return 0;

@@ -4,7 +4,11 @@
 
 #include "Transformer.h"
 
-cv::Mat Transformer::convolve(const cv::Mat &img, const cv::Mat &filter) {
+Transformer::Transformer(bool parallel) {
+    this->_parallel = parallel;
+}
+
+cv::Mat Transformer::convolve(const cv::Mat &img, const cv::Mat &filter) const { // NOLINT(*-convert-member-functions-to-static)
     const int Fh = filter.rows;
     const int Fw = filter.cols;
     const int Oh = img.rows;
@@ -33,42 +37,43 @@ cv::Mat Transformer::convolve(const cv::Mat &img, const cv::Mat &filter) {
         CV_Assert(_filter.isContinuous());
     }
 
-    const uchar *i_ptr = _img.ptr(0);
-    const uchar *f_ptr = _filter.ptr(0);
     uchar *o_ptr = output.ptr(0);
     uint divisor = static_cast<uint>(cv::sum(filter).val[0]);
+    const uchar *i_ptr = _img.ptr(0);
+    const uchar *f_ptr = _filter.ptr(0);
+    const int v_step = Ih - Fh;
+    const int h_step = Iw - Fw;
 
     if (divisor < 1)
         divisor = 1;
 
-    for (int r = 0; r < Ih - Fh; ++r) {
-        for (int c = 0; c < Iw - Fw; ++c) {
-            int start = (r * Iw + c) * CH;
-            std::vector<uint> sum(CH, 0);
+#pragma omp parallel for if(_parallel)
+    for (int i = 0; i < v_step * h_step; ++i) {
+        int row = i / h_step;
+        int col = i % h_step;
+        int start = (row * Iw + col) * CH;
+        std::vector<uint> sum(CH, 0);
 
-            // Compute the convolution of present point.
-            // Point (r, c) is where the filter's top-left pixel overlaps.
-            for (int j = 0; j < Fh * Fw; ++j) {
-                const int _c = j % Fw;
-                const int _r = j / Fw;
-                const int i_idx = start + (_r * Iw + _c) * CH;
-                const int f_idx = (_r * Fw + _c) * CH;
-
-                for (int ch = 0; ch < CH; ++ch) {
-                    uchar coef = f_ptr[f_idx + ch];
-                    sum[ch] += i_ptr[i_idx + ch] * coef;
-                }
-            }
-
-            // Point (r+1, c+1) is where the center of filter overlaps.
-            // Let's update this particular pixel for output.
-            start = (r * Ow + c) * CH;
-            int o_idx = start + (Ow + 1) * CH;
+        // Compute the convolution of present point.
+        // Point (row, col) is where the filter's top-left pixel overlaps.
+        for (int j = 0; j < Fh * Fw; ++j) {
+            const int r = j / Fw;
+            const int c = j % Fw;
+            const int i_idx = start + (r * Iw + c) * CH;
+            const int f_idx = (r * Fw + c) * CH;
 
             for (int ch = 0; ch < CH; ++ch) {
-                o_ptr[o_idx + ch] = sum[ch] / divisor;
-
+                sum[ch] += i_ptr[i_idx + ch] * f_ptr[f_idx + ch];
             }
+        }
+
+        // Point (row+1, col+1) is where the center of filter overlaps.
+        // Let's update this particular pixel for output.
+        start = (row * Ow + col) * CH;
+        int o_idx = start + (Ow + 1) * CH;
+
+        for (int ch = 0; ch < CH; ++ch) {
+            o_ptr[o_idx + ch] = sum[ch] / divisor;
         }
     }
 
@@ -86,4 +91,8 @@ cv::Mat Transformer::broadcast(const cv::Mat &matrix, int channel_to) {
     cv::Mat m = cv::Mat::ones(channel_to, 1, matrix.type());
     cv::transform(matrix, dst, m);
     return dst;
+}
+
+void Transformer::parallel(bool parallel) {
+    this->_parallel = parallel;
 }

@@ -9,10 +9,12 @@
 
 class Transformer {
 public:
-    static cv::Mat convolve(const cv::Mat &img, const cv::Mat &filter);
-
+    explicit Transformer(bool parallel = false);
+    void parallel(bool parallel);
+    cv::Mat convolve(const cv::Mat &img, const cv::Mat &filter) const;
+private:
+    bool _parallel;
     static int getPadding(int filter, int input, int stride);
-
     static cv::Mat broadcast(const cv::Mat &matrix, int channel_to);
 };
 
