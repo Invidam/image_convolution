@@ -5,57 +5,60 @@
 #include "Transformer.h"
 
 Transformer::Transformer(bool parallel) {
-    this->_parallel = parallel;
+    this->is_parallel = parallel;
 }
 
-cv::Mat Transformer::convolve(const cv::Mat &img, const cv::Mat &filter) const { // NOLINT(*-convert-member-functions-to-static)
-    const int Fh = filter.rows;
-    const int Fw = filter.cols;
-    const int Oh = img.rows;
-    const int Ow = img.cols;
+cv::Mat Transformer::convolve(const cv::Mat &image, const std::vector<cv::Mat> &kernels, const std::function<int(int[])>& reduce) const {
+    const int Fh = kernels[0].rows;
+    const int Fw = kernels[0].cols;
+    const int Oh = image.rows;
+    const int Ow = image.cols;
     const int Ph = getPadding(Fh, Oh, 1);
     const int Pw = getPadding(Fw, Ow, 1);
-    const int CH = img.channels();
+    const int CH = image.channels();
     const int Ih = Oh + 2 * Ph;
     const int Iw = Ow + 2 * Pw;
 
-    CV_Assert(img.isContinuous());
-    CV_Assert(filter.isContinuous());
+    CV_Assert(image.isContinuous());
+    CV_Assert(kernels[0].isContinuous());
     CV_Assert(Fw <= Ow);
-    CV_Assert(Fh <= Oh);     // filter size never surpass image
-    CV_Assert(Fh % 2 == 1);  // filter size is always odd-number
-    CV_Assert(Fh == Fw);     // filter shape is always square
+    CV_Assert(Fh <= Oh);     // kernel size never surpass image
+    CV_Assert(Fh % 2 == 1);  // kernel size is always odd-number
+    CV_Assert(Fh == Fw);     // kernel shape is always square
 
-    cv::Mat output(img);
-    cv::Mat _filter(filter);
-    cv::Mat _img(Ih, Iw, img.type());
-    cv::copyMakeBorder(img, _img, Ph, Ph, Pw, Pw, cv::BORDER_ISOLATED);
+    cv::Mat _image(Ih, Iw, image.type());
+    cv::Mat output(image);
 
-    // Make sure img and filter have same number of channels.
-    if (_filter.channels() != CH) {
-        _filter = broadcast(_filter.clone(), CH);
-        CV_Assert(_filter.isContinuous());
-    }
+    cv::copyMakeBorder(image, _image, Ph, Ph, Pw, Pw, cv::BORDER_ISOLATED);
+    permute(_image, CH, CV_8U);  // 8-bit unsigned char (uchar)
 
-    uchar *o_ptr = output.ptr(0);
-    uint divisor = static_cast<uint>(cv::sum(filter).val[0]);
-    const uchar *i_ptr = _img.ptr(0);
-    const uchar *f_ptr = _filter.ptr(0);
     const int v_step = Ih - Fh;
     const int h_step = Iw - Fw;
+    const uchar *i_ptr = _image.ptr(0);
+    uchar *o_ptr = output.ptr(0);
+    const size_t K = kernels.size();
+    std::vector<cv::Mat> _kernel(K);
+    std::vector<int> divisor(K);
+    std::vector<const int*> f_ptr(K);
 
-    if (divisor < 1)
-        divisor = 1;
+    #pragma omp parallel for num_threads(K) if(is_parallel)
+    for (int i = 0; i < K; ++i) {
+        cv::Mat kernel(kernels[i]);
+        permute(kernel, CH, CV_32S);  // 32-bit signed integer
+        _kernel[i] = kernel;
+        divisor[i] = std::max(1, static_cast<int>(cv::sum(kernel).val[0]));
+        f_ptr[i] = kernel.ptr<int>(0);
+    }
 
-#pragma omp parallel for if(_parallel)
+    #pragma omp parallel for if(is_parallel)
     for (int i = 0; i < v_step * h_step; ++i) {
-        int row = i / h_step;
-        int col = i % h_step;
+        const int row = i / h_step;
+        const int col = i % h_step;
         int start = (row * Iw + col) * CH;
-        std::vector<uint> sum(CH, 0);
+        std::vector<int> sum(CH * K, 0);
 
         // Compute the convolution of present point.
-        // Point (row, col) is where the filter's top-left pixel overlaps.
+        // Point (row, col) is where the kernel's top-left pixel overlaps.
         for (int j = 0; j < Fh * Fw; ++j) {
             const int r = j / Fw;
             const int c = j % Fw;
@@ -63,21 +66,38 @@ cv::Mat Transformer::convolve(const cv::Mat &img, const cv::Mat &filter) const {
             const int f_idx = (r * Fw + c) * CH;
 
             for (int ch = 0; ch < CH; ++ch) {
-                sum[ch] += i_ptr[i_idx + ch] * f_ptr[f_idx + ch];
+                uchar color = i_ptr[i_idx + ch];
+
+                for (int k = 0; k < K; ++k) {
+                    sum[k * CH + ch] += color * f_ptr[k][f_idx + ch];
+                }
             }
         }
 
-        // Point (row+1, col+1) is where the center of filter overlaps.
+        // Point (row+1, col+1) is where the center of kernel overlaps.
         // Let's update this particular pixel for output.
         start = (row * Ow + col) * CH;
         int o_idx = start + (Ow + 1) * CH;
 
         for (int ch = 0; ch < CH; ++ch) {
-            o_ptr[o_idx + ch] = sum[ch] / divisor;
+            std::vector term(K, 0);
+
+            for (int k = 0; k < K; ++k) {
+                term[k] = std::abs(sum[ch] / divisor[k]);
+            }
+
+            int color = (K > 1) ? reduce(term.data()) : term[0];
+            o_ptr[o_idx + ch] = cv::saturate_cast<uint>(color);
         }
     }
 
     return output;
+}
+
+cv::Mat Transformer::convolve(const cv::Mat &image, const cv::Mat &kernel) const { // NOLINT(*-convert-member-functions-to-static)
+    std::vector kernels(1, kernel);
+    std::function<int(int[])> reduce;
+    return convolve(image, kernels, reduce);
 }
 
 int Transformer::getPadding(int filter, int input, int stride) {
@@ -86,13 +106,26 @@ int Transformer::getPadding(int filter, int input, int stride) {
     return ((input - 1) * stride - input + filter) / 2;
 }
 
-cv::Mat Transformer::broadcast(const cv::Mat &matrix, int channel_to) {
+cv::Mat Transformer::broadcast(const cv::Mat &src, int n_channel) {
     cv::Mat dst;
-    cv::Mat m = cv::Mat::ones(channel_to, 1, matrix.type());
-    cv::transform(matrix, dst, m);
+    cv::Mat m = cv::Mat::ones(n_channel, 1, src.type());
+    cv::transform(src, dst, m);
     return dst;
 }
 
-void Transformer::parallel(bool parallel) {
-    this->_parallel = parallel;
+void Transformer::setParallelMode(bool parallel) {
+    this->is_parallel = parallel;
+}
+
+void Transformer::permute(cv::Mat &src, int n_channel, int type) {
+    if (src.channels() != n_channel) {
+        src = broadcast(src.clone(), n_channel);
+        CV_Assert(src.isContinuous());
+    }
+
+    if (src.type() != type) {
+        cv::Mat output;
+        src.convertTo(output, type);
+        src = output;
+    }
 }

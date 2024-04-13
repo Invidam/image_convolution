@@ -52,32 +52,33 @@ std::string selectImageFromFolder() {
     return imageFiles[selection - 1];
 }
 
-std::function<cv::Mat()> getFilterFunction(Filter &filter) {
+std::function<cv::Mat()> getFilterCallback(Filter &filter) {
     std::function<cv::Mat()> callback;
-    int size, type;
 
     while (true) {
-        std::cout << "Enter the filter size: ";
-        std::cin >> size;
-
-        if (size > 0) break;
-
-        std::cout << "Out of range! ";
-    }
-
-    filter.size(size);
-
-    while (true) {
+        int type;
         std::cout << "1. Gaussian blur\n";
+        std::cout << "2. Sobel (edge detection)\n";
         std::cout << "...select a filter: ";
         std::cin >> type;
 
         if (type == 1) {
+            int size;
+            float sigma;
+            std::cout << "Enter filter size: ";
+            std::cin >> size;
+            std::cout << "Enter sigma: ";
+            std::cin >> sigma;
+            callback = [&, sigma]() {
+                return filter.gaussianBlur(size, sigma);
+            };
+            break;
+        } else if (type == 2) {
             float sigma;
             std::cout << "Enter sigma: ";
             std::cin >> sigma;
             callback = [&, sigma]() {
-                return filter.gaussian(sigma);
+                return filter.sobel(sigma);
             };
             break;
         } else {
@@ -104,19 +105,19 @@ int measureBySteps(const std::string &selectedImage) {
 
     std::cout << "===========\n";
     Transformer transformer;
-    Filter filter;
-    auto getFilter = getFilterFunction(filter);
+    Filter filter(image);
+    auto compute = getFilterCallback(filter);
 
-    std::cout << "===========\n[2-1] Convolve image... (serial mode)\n";
+    std::cout << "===========\n[2-1] Transforming in serial...\n";
     stepTimer.reset();
-    transformer.convolve(image, getFilter());
+    compute();
     std::cout << "Elapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
 
-    std::cout << "===========\n[2-2] Convolve image... (parallel mode)\n";
+    std::cout << "===========\n[2-2] Transforming in parallel...\n";
     stepTimer.reset();
-    filter.parallel(true);
-    transformer.parallel(true);
-    cv::Mat result = transformer.convolve(image, getFilter());
+    filter.setParallelMode(true);
+    transformer.setParallelMode(true);
+    auto result = compute();
     std::cout << "Elapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
 
     std::cout << "===========\n[3] Writing image...\n";
