@@ -3,8 +3,10 @@
 #include <iostream>
 #include <filesystem>
 #include <vector>
-#include "Calculator.h"
+#include <functional>
+#include "Transformer.h"
 #include "Timer.h"
+#include "Filter.h"
 
 namespace fs = std::filesystem;
 namespace cvl = cv::utils::logging;
@@ -14,12 +16,13 @@ std::string getExtension(const std::string &filePath) {
 }
 
 std::string selectImageFromFolder() {
-    std::string imagesPath = "images/";
+    std::string imagesPath = "images";
     std::vector<std::string> imageFiles;
     std::string extension;
+    fs::create_directory(imagesPath);
 
     // List all files in the directory and filter for images
-    std::cout << "Listing all images from directory: " << imagesPath << std::endl;
+    std::cout << "Listing all images from: " << imagesPath << std::endl;
     for (const auto &entry: fs::directory_iterator(imagesPath)) {
         if (entry.is_regular_file()) {
             std::string filePath = entry.path().string();
@@ -50,33 +53,82 @@ std::string selectImageFromFolder() {
     return imageFiles[selection - 1];
 }
 
-int measureBySteps(std::string selectedImage) {
+std::function<cv::Mat()> getFilterCallback(Filter &filter) {
+    std::function<cv::Mat()> callback;
+
+    while (true) {
+        int type;
+        std::cout << "1. Gaussian blur\n";
+        std::cout << "2. Sobel (edge detection)\n";
+        std::cout << "...select a filter: ";
+        std::cin >> type;
+
+        if (type == 1) {
+            int size;
+            float sigma;
+            std::cout << "Enter filter size: ";
+            std::cin >> size;
+            std::cout << "Enter sigma: ";
+            std::cin >> sigma;
+            callback = [=, &filter]() {
+                return filter.gaussianBlur(size, sigma);
+            };
+            break;
+        } else if (type == 2) {
+            float sigma;
+            std::cout << "Enter sigma: ";
+            std::cin >> sigma;
+            callback = [=, &filter]() {
+                return filter.sobel(sigma);
+            };
+            break;
+        } else {
+            std::cout << "Unknown type!\n";
+        }
+    }
+
+    return callback;
+}
+
+int measureBySteps(const std::string &selectedImage) {
     Timer fullTimer;
     Timer stepTimer;
     fullTimer.reset();
     stepTimer.reset();
 
-    // Load and process the imagec
+    std::cout << "===========\n[1] Importing image...\n";
     cv::Mat image = cv::imread(selectedImage, cv::IMREAD_COLOR);
     if (image.empty()) {
         std::cerr << "Error loading image: " << selectedImage << std::endl;
         return -1;
     }
-    std::cout << "===========\n[1] Importing image...\nElapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
+    std::cout << "Elapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
 
+    std::cout << "===========\n";
+    Filter filter(image, false, false);
+    auto compute = getFilterCallback(filter);
+
+    std::cout << "===========\n[2-1] Transforming in serial..." << std::endl;
     stepTimer.reset();
-    cv::Mat result = Calculator::calculate(image);
-    std::cout << "===========\n[2] Applying convolution...\nElapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
+    compute();
+    std::cout << "Elapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
 
+    std::cout << "===========\n[2-2] Transforming in parallel..." << std::endl;
+    stepTimer.reset();
+    filter.setParallelMode(true);
+    auto result = compute();
+    std::cout << "Elapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
+
+    std::cout << "===========\n[3] Writing image...\n";
     stepTimer.reset();
     fs::create_directory("output");
     std::string outputFilename = "output/" + fs::path(selectedImage).filename().string();
-    std::cout << "Writing output to: " << outputFilename << std::endl;
     if (!cv::imwrite(outputFilename, result)) {
         std::cerr << "Failed to save the image." << std::endl;
         return -1;
     }
-    std::cout << "===========\n[3] Writing image...\nElapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
+    std::cout << "Target: " << outputFilename << std::endl;
+    std::cout << "Elapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
 
     std::cout << "===========\nTotal process time: " << fullTimer.elapsed() << " ms" << std::endl;
     return 0;

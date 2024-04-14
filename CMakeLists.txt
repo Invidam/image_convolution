@@ -7,17 +7,22 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 # List of source files
 set(SOURCE_FILES
         main.cpp
-        Calculator.cpp
+        Transformer.cpp
         Timer.cpp
-        )
+        Filter.cpp
+)
 
 set(OpenCV_DIR $ENV{OPENCV_4.5.5_HOME})
 set(OpenCV_INCLUDE ${OpenCV_DIR}/include)
 set(OpenCV_BIN ${OpenCV_DIR}/x64/mingw/bin)
 
-# Find OpenMP
+# Find OpenMP and enable it
 find_package(OpenMP REQUIRED)
-if(NOT OpenMP_CXX_FOUND)
+if(OpenMP_CXX_FOUND)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+    message(STATUS "OpenMP v${OpenMP_CXX_VERSION} found")
+else()
     message(FATAL_ERROR "OpenMP not found")
 endif()
 
