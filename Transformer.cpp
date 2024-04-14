@@ -91,7 +91,7 @@ cv::Mat Transformer::convolve(  // NOLINT(*-convert-member-functions-to-static)
             std::vector term(K, 0);
 
             for (int k = 0; k < K; ++k) {
-                term[k] = std::abs(sum[ch] / divisor[k]);
+                term[k] = std::abs(sum[k * CH + ch] / divisor[k]);
             }
 
             int color = (K > 1) ? reduce(term.data()) : term[0];
