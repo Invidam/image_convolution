@@ -54,11 +54,11 @@ std::string selectImageFromFolder() {
 }
 int size;
 float sigma;
+int type;
 std::function<cv::Mat()> getFilterCallback(Filter &filter) {
     std::function<cv::Mat()> callback;
 
     while (true) {
-        int type;
         std::cout << "1. Gaussian blur\n";
         std::cout << "2. Sobel (edge detection)\n";
         std::cout << "...select a filter: ";
@@ -120,7 +120,9 @@ int measureBySteps(const std::string &selectedImage) {
     std::cout << "===========\n[2-3] Transforming by opencv..." << std::endl;
     stepTimer.reset();
 
-    auto result_opencv = filter.opencvGaussianBlur(sigma, size);
+    int depth = CV_16S;  // Depth of the output image
+
+    auto result_opencv =  type == 1 ? filter.opencvGaussianBlur(sigma, size) : filter.opencvSobel(CV_8U, 1, 0, 3);
     std::cout << "Elapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
 
     std::cout << "===========\n[3] Writing image...\n";
