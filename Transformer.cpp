@@ -51,7 +51,7 @@ cv::Mat Transformer::convolve(  // NOLINT(*-convert-member-functions-to-static)
         f_ptr[i] = kernel.ptr<int>(0);
     }
 
-#pragma omp parallel for if(parallel)
+#pragma omp parallel for schedule(static) if(parallel)
     for (int i = 0; i < v_step * h_step; ++i) {
         const int row = i / h_step;
         const int col = i % h_step;
