@@ -16,14 +16,13 @@ std::string getExtension(const std::string &filePath) {
 }
 
 std::string selectImageFromFolder() {
-    std::string imagesPath = "images/";
+    std::string imagesPath = "images";
     std::vector<std::string> imageFiles;
     std::string extension;
-
-    // todo: crashes if the folder is not there
+    fs::create_directory(imagesPath);
 
     // List all files in the directory and filter for images
-    std::cout << "Listing all images from directory: " << imagesPath << std::endl;
+    std::cout << "Listing all images from: " << imagesPath << std::endl;
     for (const auto &entry: fs::directory_iterator(imagesPath)) {
         if (entry.is_regular_file()) {
             std::string filePath = entry.path().string();
