@@ -20,6 +20,8 @@ std::string selectImageFromFolder() {
     std::vector<std::string> imageFiles;
     std::string extension;
 
+    // todo: crashes if the folder is not there
+
     // List all files in the directory and filter for images
     std::cout << "Listing all images from directory: " << imagesPath << std::endl;
     for (const auto &entry: fs::directory_iterator(imagesPath)) {
@@ -69,7 +71,7 @@ std::function<cv::Mat()> getFilterCallback(Filter &filter) {
             std::cin >> size;
             std::cout << "Enter sigma: ";
             std::cin >> sigma;
-            callback = [&, sigma]() {
+            callback = [=, &filter]() {
                 return filter.gaussianBlur(size, sigma);
             };
             break;
@@ -77,7 +79,7 @@ std::function<cv::Mat()> getFilterCallback(Filter &filter) {
             float sigma;
             std::cout << "Enter sigma: ";
             std::cin >> sigma;
-            callback = [&, sigma]() {
+            callback = [=, &filter]() {
                 return filter.sobel(sigma);
             };
             break;
@@ -115,7 +117,6 @@ int measureBySteps(const std::string &selectedImage) {
     std::cout << "===========\n[2-2] Transforming in parallel..." << std::endl;
     stepTimer.reset();
     filter.setParallelMode(true);
-    transformer.setParallelMode(true);
     auto result = compute();
     std::cout << "Elapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
 

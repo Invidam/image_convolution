@@ -6,10 +6,11 @@
 Filter::Filter(const cv::Mat &image) : Filter(image, false) {
 }
 
-Filter::Filter(const cv::Mat &image, bool parallel) {
-    this->transformer = Transformer();
-    this->image = cv::Mat(image);
+Filter::Filter(const cv::Mat &image, bool parallel, bool verbose) {
     this->is_parallel = parallel;
+    this->verbose = verbose;
+    this->transformer = Transformer(parallel, verbose);
+    this->image = cv::Mat(image);
 }
 
 cv::Mat Filter::gaussianBlur(int filter_size, float sigma) const {
@@ -79,4 +80,5 @@ cv::Mat Filter::sobel(float sigma) const {
 
 void Filter::setParallelMode(bool parallel) {
     this->is_parallel = parallel;
+    this->transformer.setParallelMode(parallel);
 }
