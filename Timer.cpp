@@ -1,7 +1,3 @@
-//
-// Created by Hansu Park on 2024/04/05.
-//
-
 #include "Timer.h"
 
 Timer::Timer() : m_startTime(std::chrono::high_resolution_clock::now()) {}

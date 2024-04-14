@@ -104,16 +104,15 @@ int measureBySteps(const std::string &selectedImage) {
     std::cout << "Elapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
 
     std::cout << "===========\n";
-    Transformer transformer;
-    Filter filter(image);
+    Filter filter(image, false, false);
     auto compute = getFilterCallback(filter);
 
-    std::cout << "===========\n[2-1] Transforming in serial...\n";
+    std::cout << "===========\n[2-1] Transforming in serial..." << std::endl;
     stepTimer.reset();
     compute();
     std::cout << "Elapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
 
-    std::cout << "===========\n[2-2] Transforming in parallel...\n";
+    std::cout << "===========\n[2-2] Transforming in parallel..." << std::endl;
     stepTimer.reset();
     filter.setParallelMode(true);
     transformer.setParallelMode(true);

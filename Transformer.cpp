@@ -1,14 +1,16 @@
-//
-// Created by Hansu Park on 2024/04/04.
-//
-
 #include "Transformer.h"
+#include "Timer.h"
 
-Transformer::Transformer(bool parallel) {
-    this->is_parallel = parallel;
+Transformer::Transformer(bool parallel, bool verbose) {
+    this->parallel = parallel;
+    this->verbose = verbose;
 }
 
-cv::Mat Transformer::convolve(const cv::Mat &image, const std::vector<cv::Mat> &kernels, const std::function<int(int[])>& reduce) const {
+cv::Mat Transformer::convolve(  // NOLINT(*-convert-member-functions-to-static)
+        const cv::Mat &image,
+        const std::vector<cv::Mat> &kernels,
+        const std::function<int(int[])> &reduce
+) const {
     const int Fh = kernels[0].rows;
     const int Fw = kernels[0].cols;
     const int Oh = image.rows;
@@ -39,9 +41,8 @@ cv::Mat Transformer::convolve(const cv::Mat &image, const std::vector<cv::Mat> &
     const size_t K = kernels.size();
     std::vector<cv::Mat> _kernel(K);
     std::vector<int> divisor(K);
-    std::vector<const int*> f_ptr(K);
+    std::vector<const int *> f_ptr(K);
 
-    #pragma omp parallel for num_threads(K) if(is_parallel)
     for (int i = 0; i < K; ++i) {
         cv::Mat kernel(kernels[i]);
         permute(kernel, CH, CV_32S);  // 32-bit signed integer
@@ -50,12 +51,13 @@ cv::Mat Transformer::convolve(const cv::Mat &image, const std::vector<cv::Mat> &
         f_ptr[i] = kernel.ptr<int>(0);
     }
 
-    #pragma omp parallel for if(is_parallel)
+#pragma omp parallel for if(parallel)
     for (int i = 0; i < v_step * h_step; ++i) {
         const int row = i / h_step;
         const int col = i % h_step;
         int start = (row * Iw + col) * CH;
         std::vector<int> sum(CH * K, 0);
+        Timer timer;
 
         // Compute the convolution of present point.
         // Point (row, col) is where the kernel's top-left pixel overlaps.
@@ -74,6 +76,12 @@ cv::Mat Transformer::convolve(const cv::Mat &image, const std::vector<cv::Mat> &
             }
         }
 
+        if (verbose) {
+            auto time = timer.elapsed();
+            std::cout << "Pixel (" << row << ',' << col << ") convolved in " << time << " ms" << std::endl;
+            timer.reset();
+        }
+
         // Point (row+1, col+1) is where the center of kernel overlaps.
         // Let's update this particular pixel for output.
         start = (row * Ow + col) * CH;
@@ -89,12 +97,19 @@ cv::Mat Transformer::convolve(const cv::Mat &image, const std::vector<cv::Mat> &
             int color = (K > 1) ? reduce(term.data()) : term[0];
             o_ptr[o_idx + ch] = cv::saturate_cast<uint>(color);
         }
+
+        if (verbose) {
+            auto time = timer.elapsed();
+            std::cout << "Pixel (" << row + 1 << ',' << col + 1 << ") updated in " << time << " ms" << std::endl;
+            timer.reset();
+        }
     }
 
     return output;
 }
 
-cv::Mat Transformer::convolve(const cv::Mat &image, const cv::Mat &kernel) const { // NOLINT(*-convert-member-functions-to-static)
+cv::Mat Transformer::convolve(const cv::Mat &image,
+                              const cv::Mat &kernel) const { // NOLINT(*-convert-member-functions-to-static)
     std::vector kernels(1, kernel);
     std::function<int(int[])> reduce;
     return convolve(image, kernels, reduce);
@@ -113,8 +128,8 @@ cv::Mat Transformer::broadcast(const cv::Mat &src, int n_channel) {
     return dst;
 }
 
-void Transformer::setParallelMode(bool parallel) {
-    this->is_parallel = parallel;
+void Transformer::setParallelMode(bool mode) {
+    this->parallel = mode;
 }
 
 void Transformer::permute(cv::Mat &src, int n_channel, int type) {

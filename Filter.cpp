@@ -1,10 +1,7 @@
-//
-// Created by Lazo Young on 13-Apr-24.
-//
-
 #include <cmath>
 #include "Transformer.h"
 #include "Filter.h"
+#include "Timer.h"
 
 Filter::Filter(const cv::Mat &image) : Filter(image, false) {
 }
@@ -32,7 +29,11 @@ cv::Mat Filter::gaussianBlur(int filter_size, float sigma) const {
     cv::Mat filter(filter_size, filter_size, CV_32S);
     int *ptr = filter.ptr<int>(0);
 
-#pragma omp parallel for if(is_parallel)
+    // Each thread produces roughly 36963 digits per millisecond
+    [[maybe_unused]] const int n_thread = std::max(1, is_parallel * n_row * n_col / 36963);
+    Timer timer;
+
+    #pragma omp parallel for num_threads(n_thread)
     for (int i = 0; i < n_row * n_col; ++i) {
         int row = i / n_col;
         int col = i % n_col;
@@ -40,6 +41,10 @@ cv::Mat Filter::gaussianBlur(int filter_size, float sigma) const {
         int x = col - origin_col;
         double index = -(x * x + y * y) / ssq;
         ptr[i] = cv::saturate_cast<int>(UINT8_MAX * exp(index) / (pi * ssq));
+    }
+
+    if (verbose) {
+        std::cout << "Filter created in " << timer.elapsed() << " ms" << std::endl;
     }
 
     return transformer.convolve(image, filter);

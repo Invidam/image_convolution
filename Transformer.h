@@ -9,12 +9,13 @@
 
 class Transformer {
 public:
-    explicit Transformer(bool parallel = false);
-    void setParallelMode(bool parallel);
+    explicit Transformer(bool parallel = false, bool verbose = false);
+    void setParallelMode(bool mode);
     cv::Mat convolve(const cv::Mat &image, const cv::Mat &kernel) const;
     cv::Mat convolve(const cv::Mat &image, const std::vector<cv::Mat> &kernels, const std::function<int(int[])> &reduce) const;
 private:
-    [[maybe_unused]] bool is_parallel;
+    [[maybe_unused]] bool parallel;
+    bool verbose;
     static int getPadding(int filter, int input, int stride);
     static cv::Mat broadcast(const cv::Mat &src, int n_channel);
     static void permute(cv::Mat &src, int n_channel, int type) ;
