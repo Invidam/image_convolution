@@ -137,7 +137,7 @@ int measureBySteps(const std::string &selectedImage) {
 
     std::cout << "===========\n[2-1] Transforming in serial..." << std::endl;
     stepTimer.reset();
-    compute();
+//    compute();
     std::cout << "Elapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
 
     std::cout << "===========\n[2-2] Transforming in parallel..." << std::endl;
@@ -151,7 +151,7 @@ int measureBySteps(const std::string &selectedImage) {
 
     int depth = CV_16S;  // Depth of the output image
 
-    auto result_opencv = type == 1 ? filter.opencvGaussianBlur(sigma, size) : filter.opencvSobel(CV_8U, 1, 0, 3);
+    auto result_opencv = type == 1 ? filter.opencvGaussianBlur(sigma, size) : filter.opencvSobel(CV_8U, 1, 1, 3);
     std::cout << "Elapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
 
     std::cout << "===========\n[3] Writing image...\n";
@@ -206,7 +206,7 @@ int measureByStepsV2(const std::string &selectedImage) {
 
     int depth = CV_16S;  // Depth of the output image
 
-    auto result_opencv = type == 1 ? filter.opencvGaussianBlur(sigma, size) : filter.opencvSobel(CV_8U, 1, 0, 3);
+    auto result_opencv = type == 1 ? filter.opencvGaussianBlur(sigma, size) : filter.opencvSobel(CV_8U, 1, 1, 3);
     std::cout << "Elapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
 
     std::cout << "===========\n[3] Writing image...\n";
@@ -237,8 +237,8 @@ int main() {
         result = -1;
     } else {
         int types[2] = {1, 2};
-        int sizes[3] = {3, 33, 333};
-        float sigma = 1.0f;
+        int sizes[3] = {3, 9, 27};
+        sigma = 1.0f;
 
         for (int i = 0; i < 2; i++) {
             for (int j = 0; j < 3; j++) {
@@ -250,10 +250,39 @@ int main() {
                 result = measureByStepsV2(selectedImage);
             }
         }
-    }
+        {
 
-    std::cout << "\nPress ENTER to exit...";
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-    std::cin.get();
-    return result;
+            std::cout << "channel compare \n\n\n";
+            std::string images[3] = {"images/ARGB.png", "images/RGB.png", "images/Gray-scale.png"};
+            for (int i = 0; i < 3; i++) {
+                selectedImage = images[i];
+                for (int j = 0; j < 2; j++) {
+                    type = types[j];
+                    size = sizes[0];
+                    std::cout << "Type: " << type << "\n"
+                              << "Size: " << size << "\n"
+                              << "Sigma: " << sigma << "\n"
+                              << "Image: " << images[i] << "\n";
+                    result = measureByStepsV2(selectedImage);
+                }
+
+            }
+        }
+        {
+            std::cout << "image size compare \n\n\n";
+            std::string images[3] = {"images/ARGB.png", "images/ARGB(0.5).png", "images/ARGB(0.25).png"};
+            for (int i = 0; i < 3; i++) {
+                selectedImage = images[i];
+                for (int j = 0; j < 2; j++) {
+                    type = types[j];
+                    size = sizes[0];
+                    std::cout << "Type: " << type << "\n"
+                              << "Size: " << size << "\n"
+                              << "Sigma: " << sigma << "\n"
+                              << "Image: " << images[i] << "\n";
+                    result = measureByStepsV2(selectedImage);
+                }
+            }
+        }
+    }
 }

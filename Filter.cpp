@@ -34,7 +34,7 @@ cv::Mat Filter::gaussianBlur(int filter_size, float sigma) const {
     [[maybe_unused]] const int n_thread = std::max(1, is_parallel * n_row * n_col / 36963);
     Timer timer;
 
-    #pragma omp parallel for num_threads(n_thread)
+    #pragma omp parallel for num_threads(128)
     for (int i = 0; i < n_row * n_col; ++i) {
         int row = i / n_col;
         int col = i % n_col;
@@ -106,7 +106,8 @@ cv::Mat Filter::opencvSobel(int ddepth, int dx, int dy, int ksize) const {
 
     Timer timer;  // Assuming Timer is a utility to measure time
 
-    // Compute gradients on x and y
+    // Compute gradients on x and
+    // y
     cv::Sobel(image, grad_x, ddepth, dx, 0, ksize);
     cv::Sobel(image, grad_y, ddepth, 0, dy, ksize);
 
