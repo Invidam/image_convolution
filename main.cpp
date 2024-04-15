@@ -236,6 +236,6 @@ int main() {
     if (selectedImage.empty()) {
         result = -1;
     } else {
-        result = measureByStepsV2(selectedImage);
+        result = measureBySteps(selectedImage);
     }
 }
