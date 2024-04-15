@@ -3,17 +3,12 @@
 #include <iostream>
 #include <filesystem>
 #include <vector>
-#include <functional>
 #include "Transformer.h"
 #include "Timer.h"
 #include "Filter.h"
 
 namespace fs = std::filesystem;
 namespace cvl = cv::utils::logging;
-
-std::string getExtension(const std::string &filePath) {
-    return filePath.substr(filePath.find_last_of('.') + 1);
-}
 
 std::string selectImageFromFolder() {
     std::string imagesPath = "images";
@@ -90,33 +85,6 @@ std::function<cv::Mat()> getFilterCallback(Filter &filter) {
     return callback;
 }
 
-std::function<cv::Mat()> getFilterCallbackV2(Filter &filter) {
-    std::function<cv::Mat()> callback;
-
-    while (true) {
-        if (type == 1) {
-            std::cout << "1. Gaussian blur\n";
-            std::cout << "Size: " << size << "\n"
-                      << "Sigma: " << sigma << "\n";
-            callback = [=, &filter]() {
-                return filter.gaussianBlur(size, sigma);
-            };
-            break;
-        } else if (type == 2) {
-            std::cout << "2. Sobel (edge detection)\n";
-            std::cout << "Sigma: " << sigma << "\n";
-            callback = [=, &filter]() {
-                return filter.sobel(sigma);
-            };
-            break;
-        } else {
-            std::cout << "Unknown type!\n";
-        }
-    }
-
-    return callback;
-}
-
 int measureBySteps(const std::string &selectedImage) {
     Timer fullTimer;
     Timer stepTimer;
@@ -172,61 +140,6 @@ int measureBySteps(const std::string &selectedImage) {
     return 0;
 }
 
-int measureByStepsV2(const std::string &selectedImage) {
-    Timer fullTimer;
-    Timer stepTimer;
-    fullTimer.reset();
-    stepTimer.reset();
-
-    std::cout << "===========\n[1] Importing image...\n";
-    cv::Mat image = cv::imread(selectedImage, cv::IMREAD_COLOR);
-    if (image.empty()) {
-        std::cerr << "Error loading image: " << selectedImage << std::endl;
-        return -1;
-    }
-    std::cout << "Elapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
-
-    std::cout << "===========\n";
-    Filter filter(image, false, false);
-    auto compute = getFilterCallbackV2(filter);
-
-    std::cout << "===========\n[2-1] Transforming in serial..." << std::endl;
-    stepTimer.reset();
-    compute();
-    std::cout << "Elapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
-
-    std::cout << "===========\n[2-2] Transforming in parallel..." << std::endl;
-    stepTimer.reset();
-    filter.setParallelMode(true);
-    auto result = compute();
-    std::cout << "Elapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
-
-    std::cout << "===========\n[2-3] Transforming by opencv..." << std::endl;
-    stepTimer.reset();
-
-    int depth = CV_16S;  // Depth of the output image
-
-    auto result_opencv = type == 1 ? filter.opencvGaussianBlur(sigma, size) : filter.opencvSobel(CV_8U, 1, 1, 3);
-    std::cout << "Elapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
-
-    std::cout << "===========\n[3] Writing image...\n";
-    stepTimer.reset();
-    fs::create_directory("output");
-    if (!cv::imwrite("output/" + fs::path(selectedImage).filename().string(), result)) {
-        std::cerr << "Failed to save the image." << std::endl;
-        return -1;
-    }
-    if (!cv::imwrite("output/opencv-" + fs::path(selectedImage).filename().string(), result_opencv)) {
-        std::cerr << "Failed to save the image." << std::endl;
-        return -1;
-    }
-    std::cout << "Target: " << "output/" + fs::path(selectedImage).filename().string() << std::endl;
-    std::cout << "Elapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
-
-    std::cout << "===========\nTotal process time: " << fullTimer.elapsed() << " ms" << std::endl;
-    return 0;
-}
-
 int main() {
     std::cout << "# of max threads: " << omp_get_max_threads() << std::endl;
     cvl::setLogLevel(cvl::LogLevel::LOG_LEVEL_WARNING);
@@ -236,6 +149,11 @@ int main() {
     if (selectedImage.empty()) {
         result = -1;
     } else {
-        result = measureByStepsV2(selectedImage);
+        result = measureBySteps(selectedImage);
     }
+
+    std::cout << "\nPress ENTER to exit...";
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    std::cin.get();
+    return result;
 }
