@@ -1,0 +1,81 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <?define ComponentRules="OneToOne"?>
+  <!-- SourceDir instructs IsWiX the location of the directory that contains files for this wix library -->
+  <?define SourceDir=".\Deploy"?>
+  <Fragment>
+    <ComponentGroup Id="ImageConvolutionFiles">
+      <Component Directory="INSTALLLOCATION" Subdirectory="ImageConvolution">
+        <File Source="$(var.SourceDir)\ImageConvolution\image_convolution.exe" KeyPath="yes">
+          <Shortcut Id="sc14E2432430552FE8E1C137D682E82D33" Name="ImageConv" Directory="DesktopFolder" Advertise="yes" />
+        </File>
+      </Component>
+      <Component Directory="INSTALLLOCATION" Subdirectory="ImageConvolution">
+        <File Source="$(var.SourceDir)\ImageConvolution\libatomic-1.dll" KeyPath="yes" />
+      </Component>
+      <Component Directory="INSTALLLOCATION" Subdirectory="ImageConvolution">
+        <File Source="$(var.SourceDir)\ImageConvolution\libgcc_s_seh-1.dll" KeyPath="yes" />
+      </Component>
+      <Component Directory="INSTALLLOCATION" Subdirectory="ImageConvolution">
+        <File Source="$(var.SourceDir)\ImageConvolution\libgomp-1.dll" KeyPath="yes" />
+      </Component>
+      <Component Directory="INSTALLLOCATION" Subdirectory="ImageConvolution">
+        <File Source="$(var.SourceDir)\ImageConvolution\libopencv_calib3d455.dll" KeyPath="yes" />
+      </Component>
+      <Component Directory="INSTALLLOCATION" Subdirectory="ImageConvolution">
+        <File Source="$(var.SourceDir)\ImageConvolution\libopencv_core455.dll" KeyPath="yes" />
+      </Component>
+      <Component Directory="INSTALLLOCATION" Subdirectory="ImageConvolution">
+        <File Source="$(var.SourceDir)\ImageConvolution\libopencv_dnn455.dll" KeyPath="yes" />
+      </Component>
+      <Component Directory="INSTALLLOCATION" Subdirectory="ImageConvolution">
+        <File Source="$(var.SourceDir)\ImageConvolution\libopencv_features2d455.dll" KeyPath="yes" />
+      </Component>
+      <Component Directory="INSTALLLOCATION" Subdirectory="ImageConvolution">
+        <File Source="$(var.SourceDir)\ImageConvolution\libopencv_flann455.dll" KeyPath="yes" />
+      </Component>
+      <Component Directory="INSTALLLOCATION" Subdirectory="ImageConvolution">
+        <File Source="$(var.SourceDir)\ImageConvolution\libopencv_gapi455.dll" KeyPath="yes" />
+      </Component>
+      <Component Directory="INSTALLLOCATION" Subdirectory="ImageConvolution">
+        <File Source="$(var.SourceDir)\ImageConvolution\libopencv_highgui455.dll" KeyPath="yes" />
+      </Component>
+      <Component Directory="INSTALLLOCATION" Subdirectory="ImageConvolution">
+        <File Source="$(var.SourceDir)\ImageConvolution\libopencv_imgcodecs455.dll" KeyPath="yes" />
+      </Component>
+      <Component Directory="INSTALLLOCATION" Subdirectory="ImageConvolution">
+        <File Source="$(var.SourceDir)\ImageConvolution\libopencv_imgproc455.dll" KeyPath="yes" />
+      </Component>
+      <Component Directory="INSTALLLOCATION" Subdirectory="ImageConvolution">
+        <File Source="$(var.SourceDir)\ImageConvolution\libopencv_ml455.dll" KeyPath="yes" />
+      </Component>
+      <Component Directory="INSTALLLOCATION" Subdirectory="ImageConvolution">
+        <File Source="$(var.SourceDir)\ImageConvolution\libopencv_objdetect455.dll" KeyPath="yes" />
+      </Component>
+      <Component Directory="INSTALLLOCATION" Subdirectory="ImageConvolution">
+        <File Source="$(var.SourceDir)\ImageConvolution\libopencv_photo455.dll" KeyPath="yes" />
+      </Component>
+      <Component Directory="INSTALLLOCATION" Subdirectory="ImageConvolution">
+        <File Source="$(var.SourceDir)\ImageConvolution\libopencv_stitching455.dll" KeyPath="yes" />
+      </Component>
+      <Component Directory="INSTALLLOCATION" Subdirectory="ImageConvolution">
+        <File Source="$(var.SourceDir)\ImageConvolution\libopencv_video455.dll" KeyPath="yes" />
+      </Component>
+      <Component Directory="INSTALLLOCATION" Subdirectory="ImageConvolution">
+        <File Source="$(var.SourceDir)\ImageConvolution\libopencv_videoio455.dll" KeyPath="yes" />
+      </Component>
+      <Component Directory="INSTALLLOCATION" Subdirectory="ImageConvolution">
+        <File Source="$(var.SourceDir)\ImageConvolution\libssp-0.dll" KeyPath="yes" />
+      </Component>
+      <Component Directory="INSTALLLOCATION" Subdirectory="ImageConvolution">
+        <File Source="$(var.SourceDir)\ImageConvolution\libstdc++-6.dll" KeyPath="yes" />
+      </Component>
+      <Component Directory="INSTALLLOCATION" Subdirectory="ImageConvolution">
+        <File Source="$(var.SourceDir)\ImageConvolution\libwinpthread-1.dll" KeyPath="yes" />
+      </Component>
+      <Component Directory="INSTALLLOCATION" Subdirectory="ImageConvolution">
+        <File Source="$(var.SourceDir)\ImageConvolution\opencv_videoio_ffmpeg455_64.dll" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+</Wix>
