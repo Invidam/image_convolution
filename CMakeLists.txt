@@ -9,10 +9,10 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Bstatic,--whole-archi
 
 # List of source files
 set(SOURCE_FILES
-        main.cpp
-        Transformer.cpp
-        Timer.cpp
-        Filter.cpp
+        src/main.cpp
+        src/Transformer.cpp
+        src/Timer.cpp
+        src/Filter.cpp
 )
 
 set(OpenCV_DIR $ENV{OPENCV_4.5.5_HOME})
