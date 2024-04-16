@@ -2,14 +2,14 @@ cmake_minimum_required(VERSION 3.25)
 project(image_convolution)
 
 # Set runtime output directory to project root
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/deploy")
 
 # List of source files
 set(SOURCE_FILES
-        main.cpp
-        Transformer.cpp
-        Timer.cpp
-        Filter.cpp
+        src/main.cpp
+        src/Transformer.cpp
+        src/Timer.cpp
+        src/Filter.cpp
 )
 
 set(OpenCV_DIR $ENV{OPENCV_4.5.5_HOME})
@@ -21,7 +21,7 @@ find_package(OpenMP REQUIRED)
 if(OpenMP_CXX_FOUND)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-    message(STATUS "OpenMP v${OpenMP_CXX_VERSION} found")
+    add_compile_definitions(OPENMP_VERSION=${OpenMP_CXX_VERSION})
 else()
     message(FATAL_ERROR "OpenMP not found")
 endif()
