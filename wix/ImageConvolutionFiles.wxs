@@ -7,7 +7,7 @@
     <ComponentGroup Id="ImageConvolutionFiles">
       <Component Directory="INSTALLLOCATION" Subdirectory="ImageConvolution">
         <File Source="$(var.SourceDir)\deploy\image_convolution.exe" KeyPath="yes">
-          <Shortcut Id="sc14E2432430552FE8E1C137D682E82D33" Name="ImageConv" Directory="DesktopFolder" Advertise="yes" />
+          <Shortcut Id="sc14E2432430552FE8E1C137D682E82D33" Name="ImageConv" Directory="DesktopFolder" Icon="Icon.ico" Advertise="yes" />
         </File>
       </Component>
       <Component Directory="INSTALLLOCATION" Subdirectory="ImageConvolution">
