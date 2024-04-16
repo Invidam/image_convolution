@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 project(image_convolution)
 
 # Set runtime output directory to project root
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/wix/Deploy/ImageConvolution")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/deploy")
 
 # List of source files
 set(SOURCE_FILES
