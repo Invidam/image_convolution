@@ -3,17 +3,12 @@
 #include <iostream>
 #include <filesystem>
 #include <vector>
-#include <functional>
 #include "Transformer.h"
 #include "Timer.h"
 #include "Filter.h"
 
 namespace fs = std::filesystem;
 namespace cvl = cv::utils::logging;
-
-std::string getExtension(const std::string &filePath) {
-    return filePath.substr(filePath.find_last_of('.') + 1);
-}
 
 std::string selectImageFromFolder() {
     std::string imagesPath = "images";
@@ -53,19 +48,20 @@ std::string selectImageFromFolder() {
     return imageFiles[selection - 1];
 }
 
+int size;
+float sigma;
+int type;
+
 std::function<cv::Mat()> getFilterCallback(Filter &filter) {
     std::function<cv::Mat()> callback;
 
     while (true) {
-        int type;
         std::cout << "1. Gaussian blur\n";
         std::cout << "2. Sobel (edge detection)\n";
         std::cout << "...select a filter: ";
         std::cin >> type;
 
         if (type == 1) {
-            int size;
-            float sigma;
             std::cout << "Enter filter size: ";
             std::cin >> size;
             std::cout << "Enter sigma: ";
@@ -75,7 +71,6 @@ std::function<cv::Mat()> getFilterCallback(Filter &filter) {
             };
             break;
         } else if (type == 2) {
-            float sigma;
             std::cout << "Enter sigma: ";
             std::cin >> sigma;
             callback = [=, &filter]() {
@@ -119,15 +114,26 @@ int measureBySteps(const std::string &selectedImage) {
     auto result = compute();
     std::cout << "Elapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
 
+    std::cout << "===========\n[2-3] Transforming by opencv..." << std::endl;
+    stepTimer.reset();
+
+    int depth = CV_16S;  // Depth of the output image
+
+    auto result_opencv = type == 1 ? filter.opencvGaussianBlur(sigma, size) : filter.opencvSobel(CV_8U, 1, 1, 3);
+    std::cout << "Elapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
+
     std::cout << "===========\n[3] Writing image...\n";
     stepTimer.reset();
     fs::create_directory("output");
-    std::string outputFilename = "output/" + fs::path(selectedImage).filename().string();
-    if (!cv::imwrite(outputFilename, result)) {
+    if (!cv::imwrite("output/" + fs::path(selectedImage).filename().string(), result)) {
         std::cerr << "Failed to save the image." << std::endl;
         return -1;
     }
-    std::cout << "Target: " << outputFilename << std::endl;
+    if (!cv::imwrite("output/opencv-" + fs::path(selectedImage).filename().string(), result_opencv)) {
+        std::cerr << "Failed to save the image." << std::endl;
+        return -1;
+    }
+    std::cout << "Target: " << "output/" + fs::path(selectedImage).filename().string() << std::endl;
     std::cout << "Elapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
 
     std::cout << "===========\nTotal process time: " << fullTimer.elapsed() << " ms" << std::endl;

@@ -50,8 +50,7 @@ cv::Mat Transformer::convolve(  // NOLINT(*-convert-member-functions-to-static)
         divisor[i] = std::max(1, static_cast<int>(cv::sum(kernel).val[0]));
         f_ptr[i] = kernel.ptr<int>(0);
     }
-
-#pragma omp parallel for if(parallel)
+#pragma omp parallel for schedule(static) if(parallel) num_threads(128)
     for (int i = 0; i < v_step * h_step; ++i) {
         const int row = i / h_step;
         const int col = i % h_step;
