@@ -111,16 +111,33 @@ int measureBySteps(const std::string &selectedImage) {
     std::cout << "===========\n[2-2] Transforming in parallel..." << std::endl;
     stepTimer.reset();
     filter.setParallelMode(true);
+    filter.setCudaMode(false);
     auto result = compute();
     std::cout << "Elapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
+    fs::create_directory("output");
+    if (!cv::imwrite("output/openmp-" + fs::path(selectedImage).filename().string(), result)) {
+        std::cerr << "Failed to save the image." << std::endl;
+        return -1;
+    }
 
-    std::cout << "===========\n[2-3] Transforming by opencv..." << std::endl;
+    std::cout << "===========\n[2-3] Transforming in CUDA parallel..." << std::endl;
+    stepTimer.reset();
+    filter.setCudaMode(true);
+    result = compute();
+    std::cout << "Elapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
+
+    std::cout << "===========\n[2-4] Transforming by opencv..." << std::endl;
     stepTimer.reset();
 
     int depth = CV_16S;  // Depth of the output image
 
     auto result_opencv = type == 1 ? filter.opencvGaussianBlur(sigma, size) : filter.opencvSobel(CV_8U, 1, 1, 3);
     std::cout << "Elapsed time: " << stepTimer.elapsed() << " ms" << std::endl;
+    fs::create_directory("output");
+    if (!cv::imwrite("output/cuda-" + fs::path(selectedImage).filename().string(), result)) {
+        std::cerr << "Failed to save the image." << std::endl;
+        return -1;
+    }
 
     std::cout << "===========\n[3] Writing image...\n";
     stepTimer.reset();
@@ -141,8 +158,6 @@ int measureBySteps(const std::string &selectedImage) {
 }
 
 int main() {
-    std::cout << "# of max threads: " << omp_get_max_threads() << '\n';
-    std::cout << "OpenMP version: " << OPENMP_VERSION << std::endl;
     cvl::setLogLevel(cvl::LogLevel::LOG_LEVEL_WARNING);
     std::string selectedImage = selectImageFromFolder();
     int result;
