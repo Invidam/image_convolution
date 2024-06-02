@@ -5,8 +5,14 @@ cmake-build-debug
 .idea
 
 # Build
+images
 output
 image_convolution
 image_convolution.exe
 image_convolution.ilk
 image_convolution.pdb
+
+# Visual Studio for WiX
+wix/.vs
+wix/bin
+wix/obj
